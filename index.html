@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flashcard Creator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        h1, h2 {
+            color: #333;
+            text-align: center;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+        .form-container, .list-container {
+            flex: 1;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .flashcard-form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .flashcard-form input[type="text"], .flashcard-form textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .flashcard-form input[type="file"] {
+            margin-top: 5px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .flashcard {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            transition: transform 0.2s;
+        }
+        .flashcard:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .flashcard-image {
+            max-width: 100%;
+            height: auto;
+            margin-top: 10px;
+            border-radius: 4px;
+        }
+        #batchCards {
+            margin-top: 20px;
+        }
+        .batch-card {
+            background-color: #e9e9e9;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        #pythonCode {
+            width: 100%;
+            height: 200px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>Flashcard Creator</h1>
+    
+    <div class="container">
+        <div class="form-container">
+            <h2>Manual Input</h2>
+            <form id="flashcardForm" class="flashcard-form">
+                <input type="text" id="front" placeholder="Front of the card" required>
+                <input type="file" id="image" accept="image/*">
+                <textarea id="back" rows="3" placeholder="Back of the card" required></textarea>
+                <button type="button" id="addToBatch">Add to Batch</button>
+                <button type="submit">Create Flashcards</button>
+            </form>
+            <div id="batchCards"></div>
+            
+            <h2>Python Code Input</h2>
+            <textarea id="pythonCode" placeholder="Enter Python code to generate flashcards. Use the format: flashcards = [{'front': 'Front text', 'back': 'Back text'}, ...]"></textarea>
+            <button id="generateFromPython">Generate from Python</button>
+        </div>
+        
+        <div class="list-container">
+            <button id="exportBtn">Export to CSV</button>
+            <div id="flashcardList"></div>
+        </div>
+    </div>
+
+    <script>
+        let flashcards = [];
+        let batchCards = [];
+
+        document.getElementById('addToBatch').addEventListener('click', addToBatch);
+        document.getElementById('flashcardForm').addEventListener('submit', createFlashcards);
+        document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+        document.getElementById('generateFromPython').addEventListener('click', generateFromPython);
+
+        function addToBatch() {
+            const front = document.getElementById('front').value;
+            const back = document.getElementById('back').value;
+            const imageFile = document.getElementById('image').files[0];
+            
+            if (front && back) {
+                batchCards.push({front, back, imageFile});
+                updateBatchList();
+                document.getElementById('flashcardForm').reset();
+            } else {
+                alert('Please fill in both front and back of the card.');
+            }
+        }
+
+        function updateBatchList() {
+            const batchList = document.getElementById('batchCards');
+            batchList.innerHTML = '';
+            batchCards.forEach((card, index) => {
+                batchList.innerHTML += `
+                    <div class="batch-card">
+                        <strong>Card ${index + 1}</strong>: ${card.front} | ${card.back}
+                        ${card.imageFile ? `(Image: ${card.imageFile.name})` : ''}
+                    </div>
+                `;
+            });
+        }
+
+        function createFlashcards(e) {
+            e.preventDefault();
+            if (batchCards.length === 0) {
+                addToBatch();
+            }
+            
+            batchCards.forEach(card => {
+                if (card.imageFile) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        flashcards.push({front: card.front, back: card.back, image: event.target.result});
+                        updateFlashcardList();
+                    };
+                    reader.readAsDataURL(card.imageFile);
+                } else {
+                    flashcards.push({front: card.front, back: card.back, image: null});
+                }
+            });
+            
+            updateFlashcardList();
+            batchCards = [];
+            updateBatchList();
+            document.getElementById('flashcardForm').reset();
+        }
+
+        function generateFromPython() {
+            const pythonCode = document.getElementById('pythonCode').value;
+            try {
+                // This is a simple parser and should be used with caution
+                // It expects a specific format and doesn't handle all Python syntax
+                const parsedCode = pythonCode.match(/flashcards\s*=\s*(\[.*\])/s);
+                if (parsedCode) {
+                    const flashcardsData = JSON.parse(parsedCode[1].replace(/'/g, '"'));
+                    flashcards = flashcards.concat(flashcardsData);
+                    updateFlashcardList();
+                    alert(`${flashcardsData.length} flashcards generated from Python code.`);
+                } else {
+                    alert('Invalid Python code format. Please use the format: flashcards = [{"front": "Front text", "back": "Back text"}, ...]');
+                }
+            } catch (error) {
+                alert('Error parsing Python code. Please check your syntax.');
+                console.error(error);
+            }
+        }
+
+        function updateFlashcardList() {
+            const list = document.getElementById('flashcardList');
+            list.innerHTML = '';
+            flashcards.forEach((card, index) => {
+                let imageHtml = card.image ? `<img src="${card.image}" class="flashcard-image" alt="Flashcard image">` : '';
+                list.innerHTML += `
+                    <div class="flashcard">
+                        <h3>Flashcard ${index + 1}</h3>
+                        <p><strong>Front:</strong> ${card.front}</p>
+                        ${imageHtml}
+                        <p><strong>Back:</strong> ${card.back}</p>
+                    </div>
+                `;
+            });
+        }
+
+        function exportToCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            flashcards.forEach(card => {
+                let frontContent = card.front.replace(/,/g, "");
+                if (card.image) {
+                    frontContent += ` [Image included]`;
+                }
+                csvContent += `${frontContent},${card.back.replace(/,/g, "")}\n`;
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "flashcards.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
