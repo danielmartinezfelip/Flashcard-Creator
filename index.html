@@ -36,20 +36,14 @@
         .app-container {
             display: flex;
             gap: 30px;
-            flex-wrap: wrap;
         }
-        .form-container, .list-container {
+        .form-container, .preview-container {
             flex: 1;
-            min-width: 300px;
             background-color: var(--card-color);
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             padding: 20px;
             transition: all 0.3s ease;
-        }
-        .form-container:hover, .list-container:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
         }
         h2 {
             color: var(--primary-color);
@@ -143,17 +137,15 @@
                     <input type="text" id="front" placeholder="Front of the card" required>
                     <input type="file" id="image" accept="image/*">
                     <textarea id="back" rows="3" placeholder="Back of the card" required></textarea>
-                    <button type="button" id="addToBatch">Add to Batch</button>
-                    <button type="submit">Create Flashcards</button>
+                    <button type="submit">Add Flashcard</button>
                 </form>
-                <div id="batchCards"></div>
                 
                 <h2>Generate from Python</h2>
                 <textarea id="pythonCode" placeholder="Enter Python code to generate flashcards. Use the format: flashcards = [{'front': 'Front text', 'back': 'Back text'}, ...]"></textarea>
                 <button id="generateFromPython">Generate from Python</button>
             </div>
             
-            <div class="list-container">
+            <div class="preview-container">
                 <h2>Your Flashcards</h2>
                 <div class="export-buttons">
                     <button id="exportBtn">Export to CSV</button>
@@ -165,7 +157,125 @@
     </div>
 
     <script>
-        // ... (JavaScript remains the same as in the previous version) ...
+        let flashcards = [];
+
+        document.getElementById('flashcardForm').addEventListener('submit', addFlashcard);
+        document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+        document.getElementById('exportAnkiBtn').addEventListener('click', exportToAnki);
+        document.getElementById('generateFromPython').addEventListener('click', generateFromPython);
+
+        function addFlashcard(e) {
+            e.preventDefault();
+            const front = document.getElementById('front').value;
+            const back = document.getElementById('back').value;
+            const imageFile = document.getElementById('image').files[0];
+            
+            if (front && back) {
+                if (imageFile) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        flashcards.push({front, back, image: event.target.result, imageName: imageFile.name});
+                        updateFlashcardList();
+                    };
+                    reader.readAsDataURL(imageFile);
+                } else {
+                    flashcards.push({front, back, image: null, imageName: null});
+                    updateFlashcardList();
+                }
+                document.getElementById('flashcardForm').reset();
+            } else {
+                alert('Please fill in both front and back of the card.');
+            }
+        }
+
+        function updateFlashcardList() {
+            const list = document.getElementById('flashcardList');
+            list.innerHTML = '';
+            flashcards.forEach((card, index) => {
+                let imageHtml = card.image ? `<img src="${card.image}" class="flashcard-image" alt="Flashcard image">` : '';
+                list.innerHTML += `
+                    <div class="flashcard">
+                        <h3>Flashcard ${index + 1}</h3>
+                        <p><strong>Front:</strong> ${card.front}</p>
+                        ${imageHtml}
+                        <p><strong>Back:</strong> ${card.back}</p>
+                    </div>
+                `;
+            });
+        }
+
+        function generateFromPython() {
+            const pythonCode = document.getElementById('pythonCode').value;
+            try {
+                const parsedCode = pythonCode.match(/flashcards\s*=\s*(\[.*\])/s);
+                if (parsedCode) {
+                    const flashcardsData = JSON.parse(parsedCode[1].replace(/'/g, '"'));
+                    flashcards = flashcards.concat(flashcardsData);
+                    updateFlashcardList();
+                    alert(`${flashcardsData.length} flashcards generated from Python code.`);
+                } else {
+                    alert('Invalid Python code format. Please use the format: flashcards = [{"front": "Front text", "back": "Back text"}, ...]');
+                }
+            } catch (error) {
+                alert('Error parsing Python code. Please check your syntax.');
+                console.error(error);
+            }
+        }
+
+        function exportToCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            flashcards.forEach(card => {
+                let frontContent = card.front.replace(/,/g, "");
+                if (card.image) {
+                    frontContent += ` [Image included]`;
+                }
+                csvContent += `${frontContent},${card.back.replace(/,/g, "")}\n`;
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "flashcards.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function exportToAnki() {
+            const zip = new JSZip();
+            let mediaFiles = {};
+            let mediaCounter = 0;
+
+            // Create cards content
+            let cardsContent = "";
+            flashcards.forEach((card, index) => {
+                let frontContent = card.front;
+                if (card.image) {
+                    mediaCounter++;
+                    const fileName = `image${mediaCounter}${getFileExtension(card.imageName)}`;
+                    mediaFiles[mediaCounter] = fileName;
+                    zip.file(fileName, card.image.split(',')[1], {base64: true});
+                    frontContent += `<br><img src="${fileName}">`;
+                }
+                cardsContent += `${frontContent}\t${card.back}\n`;
+            });
+
+            // Add cards file to zip
+            zip.file("cards.txt", cardsContent);
+
+            // Create and add media file to zip
+            let mediaContent = JSON.stringify(mediaFiles);
+            zip.file("media", mediaContent);
+
+            // Generate and download the zip file
+            zip.generateAsync({type:"blob"})
+            .then(function(content) {
+                saveAs(content, "anki_flashcards.apkg");
+            });
+        }
+
+        function getFileExtension(filename) {
+            return filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2);
+        }
     </script>
 </body>
 </html>
