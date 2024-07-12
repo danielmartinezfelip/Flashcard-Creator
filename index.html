@@ -76,12 +76,6 @@
         button:hover {
             background-color: #2980b9;
         }
-        #generateFromPython {
-            background-color: var(--secondary-color);
-        }
-        #generateFromPython:hover {
-            background-color: #27ae60;
-        }
         .flashcard {
             background-color: var(--card-color);
             border: 1px solid #ddd;
@@ -93,12 +87,6 @@
         .flashcard:hover {
             transform: translateY(-3px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        #pythonCode {
-            width: 100%;
-            height: 150px;
-            font-family: monospace;
-            resize: vertical;
         }
         .export-buttons {
             display: flex;
@@ -119,10 +107,6 @@
                     <textarea id="back" rows="3" placeholder="Back of the card" required></textarea>
                     <button type="submit">Add Flashcard</button>
                 </form>
-                
-                <h2>Generate from Python</h2>
-                <textarea id="pythonCode" placeholder="Enter Python code to generate flashcards. Use the format: flashcards = [{'front': 'Front text', 'back': 'Back text'}, ...]"></textarea>
-                <button id="generateFromPython">Generate from Python</button>
             </div>
             
             <div class="preview-container">
@@ -142,7 +126,6 @@
         document.getElementById('flashcardForm').addEventListener('submit', addFlashcard);
         document.getElementById('exportBtn').addEventListener('click', exportToCSV);
         document.getElementById('exportAnkiBtn').addEventListener('click', exportToAnki);
-        document.getElementById('generateFromPython').addEventListener('click', generateFromPython);
 
         function addFlashcard(e) {
             e.preventDefault();
@@ -172,24 +155,6 @@
             });
         }
 
-        function generateFromPython() {
-            const pythonCode = document.getElementById('pythonCode').value;
-            try {
-                const parsedCode = pythonCode.match(/flashcards\s*=\s*(\[.*\])/s);
-                if (parsedCode) {
-                    const flashcardsData = JSON.parse(parsedCode[1].replace(/'/g, '"'));
-                    flashcards = flashcards.concat(flashcardsData);
-                    updateFlashcardList();
-                    alert(`${flashcardsData.length} flashcards generated from Python code.`);
-                } else {
-                    alert('Invalid Python code format. Please use the format: flashcards = [{"front": "Front text", "back": "Back text"}, ...]');
-                }
-            } catch (error) {
-                alert('Error parsing Python code. Please check your syntax.');
-                console.error(error);
-            }
-        }
-
         function exportToCSV() {
             let csvContent = "data:text/csv;charset=utf-8,";
             flashcards.forEach(card => {
@@ -210,7 +175,7 @@
             // Create notes content
             let notesContent = "";
             flashcards.forEach((card) => {
-                notesContent += `${card.front}\x1f${card.back}\n`;
+                notesContent += `${card.front}\t${card.back}\n`;
             });
 
             // Add notes file to zip
