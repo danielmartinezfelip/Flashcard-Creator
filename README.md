@@ -5,4 +5,4 @@
 - Optional image support for flashcard fronts
 - Batch creation of multiple flashcards
 - Generate flashcards from Python-like code input
-- Export flashcards to CSV
+- Export flashcards to both .csv or .apkg
