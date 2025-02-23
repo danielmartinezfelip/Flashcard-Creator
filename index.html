@@ -1,15 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Flashcard Creator with Image Upload</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flashcard Creator with Image Crop</title>
+  <!-- Cropper.js CSS -->
+  <link
+    href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css"
+    rel="stylesheet"
+  />
+  <!-- JSZip and FileSaver for exporting -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <!-- Cropper.js JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
   <style>
     :root {
       --primary-color: #3498db;
-      --secondary-color: #2ecc71;
       --background-color: #ecf0f1;
       --card-color: #ffffff;
       --text-color: #34495e;
@@ -18,7 +25,6 @@
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: var(--background-color);
       color: var(--text-color);
-      line-height: 1.6;
       margin: 0;
       padding: 0;
     }
@@ -28,42 +34,27 @@
       padding: 20px;
     }
     h1 {
-      color: var(--primary-color);
       text-align: center;
-      margin-bottom: 30px;
-      font-size: 2.5em;
+      color: var(--primary-color);
+      margin-bottom: 20px;
     }
-    .app-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 30px;
-    }
-    .form-container, .preview-container {
-      flex: 1;
-      min-width: 300px;
+    .section {
       background-color: var(--card-color);
       border-radius: 8px;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       padding: 20px;
-      transition: all 0.3s ease;
+      margin-bottom: 30px;
     }
-    h2 {
-      color: var(--primary-color);
-      border-bottom: 2px solid var(--primary-color);
-      padding-bottom: 10px;
-      margin-top: 0;
+    .form-group {
+      margin-bottom: 15px;
     }
-    .flashcard-form {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-    input[type="text"], textarea {
+    input[type="text"],
+    textarea {
       width: 100%;
       padding: 10px;
+      font-size: 16px;
       border: 1px solid #ddd;
       border-radius: 4px;
-      font-size: 16px;
     }
     input[type="file"] {
       font-size: 16px;
@@ -71,133 +62,176 @@
     button {
       padding: 10px 15px;
       background-color: var(--primary-color);
-      color: white;
+      color: #fff;
       border: none;
       border-radius: 4px;
       cursor: pointer;
-      transition: background-color 0.3s;
       font-size: 16px;
     }
     button:hover {
       background-color: #2980b9;
     }
+    #cropContainer {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    #cropImage {
+      max-width: 100%;
+      display: none;
+    }
     .flashcard {
-      background-color: var(--card-color);
       border: 1px solid #ddd;
+      border-radius: 8px;
       padding: 15px;
       margin-bottom: 15px;
-      border-radius: 8px;
-      transition: all 0.3s ease;
       position: relative;
+      background-color: var(--card-color);
     }
-    .flashcard:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    .flashcard img {
+      max-width: 100px;
+      display: block;
+      margin-top: 10px;
     }
     .delete-btn {
-      background-color: red;
-      color: white;
-      border: none;
-      padding: 5px 10px;
-      cursor: pointer;
-      font-size: 14px;
       position: absolute;
       top: 5px;
       right: 5px;
+      background-color: red;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 3px 7px;
+      cursor: pointer;
+      font-size: 12px;
     }
     .export-buttons {
-      display: flex;
-      gap: 10px;
       margin-bottom: 20px;
-    }
-    @media (max-width: 768px) {
-      .app-container {
-        flex-direction: column;
-      }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Flashcard Creator</h1>
-    <div class="app-container">
-      <div class="form-container">
-        <h2>Create Flashcards</h2>
-        <form id="flashcardForm" class="flashcard-form">
-          <input type="text" id="front" placeholder="Front of the card" required>
-          <textarea id="back" rows="3" placeholder="Back of the card" required></textarea>
-          <input type="file" id="image" accept="image/*">
-          <button type="submit">Add Flashcard</button>
-        </form>
+    <h1>Flashcard Creator with Image Crop</h1>
+
+    <!-- Image Upload & Crop Section -->
+    <div class="section" id="cropSection">
+      <h2>Upload & Crop Image</h2>
+      <div class="form-group">
+        <input
+          type="file"
+          id="imageInput"
+          accept="image/jpeg, image/png"
+        />
       </div>
-      <div class="preview-container">
-        <h2>Your Flashcards</h2>
-        <div class="export-buttons">
-          <button id="exportBtn">Export to Anki</button>
-        </div>
-        <div id="flashcardList"></div>
+      <div id="cropContainer">
+        <img id="cropImage" alt="Upload an image to crop" />
       </div>
+      <div class="form-group">
+        <textarea
+          id="backText"
+          rows="2"
+          placeholder="Enter back of card text (optional)"
+        ></textarea>
+      </div>
+      <div class="form-group">
+        <button id="cropAddBtn">Crop and Add Flashcard</button>
+        <button id="clearCropBtn">Clear Image</button>
+      </div>
+    </div>
+
+    <!-- Flashcards Preview & Export Section -->
+    <div class="section" id="previewSection">
+      <h2>Your Flashcards</h2>
+      <div class="export-buttons">
+        <button id="exportBtn">Export to Anki</button>
+      </div>
+      <div id="flashcardList"></div>
     </div>
   </div>
 
   <script>
-    // Load stored flashcards if available
     let flashcards = JSON.parse(localStorage.getItem("flashcards")) || [];
+    let cropper = null;
+    const imageInput = document.getElementById("imageInput");
+    const cropImage = document.getElementById("cropImage");
+    const cropContainer = document.getElementById("cropContainer");
+    const cropAddBtn = document.getElementById("cropAddBtn");
+    const clearCropBtn = document.getElementById("clearCropBtn");
+    const backText = document.getElementById("backText");
 
-    document.getElementById('flashcardForm').addEventListener('submit', addFlashcard);
-    document.getElementById('exportBtn').addEventListener('click', exportToAnki);
+    imageInput.addEventListener("change", handleImageUpload);
+    cropAddBtn.addEventListener("click", cropAndAddFlashcard);
+    clearCropBtn.addEventListener("click", clearCropper);
+    document.getElementById("exportBtn").addEventListener("click", exportToAnki);
 
-    function addFlashcard(e) {
-      e.preventDefault();
-      const frontInput = document.getElementById('front');
-      const backInput = document.getElementById('back');
-      const imageInput = document.getElementById('image');
-      
-      const front = frontInput.value.trim();
-      const back = backInput.value.trim();
-
-      if (!front || !back) {
-        alert('Please fill in both front and back of the card.');
+    function handleImageUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      // Validate file type (only jpeg and png allowed)
+      if (!file.type.match("image/jpeg") && !file.type.match("image/png")) {
+        alert("Only JPEG and PNG images are allowed.");
         return;
       }
-      
-      // If an image is selected, process it asynchronously
-      if (imageInput.files && imageInput.files[0]) {
-        const file = imageInput.files[0];
-        const reader = new FileReader();
-        reader.onload = function(event) {
-          const imageData = event.target.result; // base64 data URL
-          const flashcard = {
-            front: front,
-            back: back,
-            image: {
-              name: generateUniqueFilename(file.name),
-              data: imageData
-            }
-          };
-          flashcards.push(flashcard);
-          localStorage.setItem("flashcards", JSON.stringify(flashcards));
-          updateFlashcardList();
-          document.getElementById('flashcardForm').reset();
-        };
-        reader.readAsDataURL(file);
-      } else {
-        // No image selected; create flashcard normally.
-        const flashcard = {
-          front: front,
-          back: back
-        };
-        flashcards.push(flashcard);
-        localStorage.setItem("flashcards", JSON.stringify(flashcards));
-        updateFlashcardList();
-        document.getElementById('flashcardForm').reset();
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        cropImage.src = event.target.result;
+        cropImage.style.display = "block";
+        // If a cropper instance exists, destroy it before creating a new one.
+        if (cropper) {
+          cropper.destroy();
+        }
+        cropper = new Cropper(cropImage, {
+          aspectRatio: NaN, // free aspect ratio
+          viewMode: 1,
+          autoCropArea: 0.8,
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function cropAndAddFlashcard() {
+      if (!cropper) {
+        alert("Please upload an image first.");
+        return;
       }
+      // Get cropped image as data URL
+      const croppedCanvas = cropper.getCroppedCanvas();
+      if (!croppedCanvas) {
+        alert("Could not get cropped image.");
+        return;
+      }
+      const croppedDataUrl = croppedCanvas.toDataURL("image/png");
+      // Generate a unique filename for this cropped image
+      const uniqueFilename = generateUniqueFilename("cropped.png");
+      // Create the flashcard object with cropped image on the front
+      const flashcard = {
+        front: "", // The front will be the image reference when exporting
+        back: backText.value.trim() || "",
+        image: {
+          name: uniqueFilename,
+          data: croppedDataUrl,
+        },
+      };
+      flashcards.push(flashcard);
+      localStorage.setItem("flashcards", JSON.stringify(flashcards));
+      updateFlashcardList();
+      // Clear the backside text input for next crop
+      backText.value = "";
+    }
+
+    function clearCropper() {
+      if (cropper) {
+        cropper.destroy();
+        cropper = null;
+      }
+      cropImage.src = "";
+      cropImage.style.display = "none";
+      imageInput.value = "";
     }
 
     function generateUniqueFilename(originalName) {
-      // Append a timestamp to the original filename for uniqueness.
       const timestamp = Date.now();
-      const dotIndex = originalName.lastIndexOf('.');
+      const dotIndex = originalName.lastIndexOf(".");
       if (dotIndex !== -1) {
         const name = originalName.substring(0, dotIndex);
         const ext = originalName.substring(dotIndex);
@@ -207,20 +241,18 @@
     }
 
     function updateFlashcardList() {
-      const list = document.getElementById('flashcardList');
-      list.innerHTML = '';
+      const list = document.getElementById("flashcardList");
+      list.innerHTML = "";
       flashcards.forEach((card, index) => {
-        let imageHTML = '';
+        let imageHTML = "";
         if (card.image && card.image.data) {
-          imageHTML = `<img src="${card.image.data}" alt="Image" style="max-width:100px; display:block; margin-top:10px;">`;
+          imageHTML = `<img src="${card.image.data}" alt="Cropped Image">`;
         }
         list.innerHTML += `
           <div class="flashcard">
             <button class="delete-btn" onclick="deleteFlashcard(${index})">X</button>
-            <h3>Flashcard ${index + 1}</h3>
-            <p><strong>Front:</strong> ${card.front}</p>
-            ${imageHTML}
-            <p><strong>Back:</strong> ${card.back}</p>
+            <div><strong>Front:</strong> ${imageHTML}</div>
+            <div><strong>Back:</strong> ${card.back}</div>
           </div>
         `;
       });
@@ -235,33 +267,27 @@
     async function exportToAnki() {
       const zip = new JSZip();
       let csvContent = "Front,Back\n";
-      // Object to track added image files (avoid duplicate entries)
       const addedImages = {};
-
-      flashcards.forEach(card => {
-        let frontContent = card.front;
-        // If an image exists, append an HTML image tag referencing the file name.
+      flashcards.forEach((card) => {
+        let frontContent = "";
+        // If an image exists, include an <img> tag referencing its filename.
         if (card.image && card.image.name) {
-          frontContent += `<br><img src="${card.image.name}">`;
-          // Add the image file to the zip if not already added.
+          frontContent = `<img src="${card.image.name}">`;
           if (!addedImages[card.image.name]) {
-            const base64Index = card.image.data.indexOf(',') + 1;
+            // Remove the data URL prefix and add the file to the zip.
+            const base64Index = card.image.data.indexOf(",") + 1;
             const base64Data = card.image.data.substring(base64Index);
             zip.file(card.image.name, base64Data, { base64: true });
             addedImages[card.image.name] = true;
           }
         }
-        // Escape double quotes for CSV formatting.
+        // Escape quotes in CSV.
         frontContent = frontContent.replace(/"/g, '""');
         const backContent = card.back.replace(/"/g, '""');
         csvContent += `"${frontContent}","${backContent}"\n`;
       });
-
-      // Add the CSV file to the zip.
       zip.file("flashcards.csv", csvContent);
-
-      // Generate the zip file and trigger a download.
-      zip.generateAsync({ type: "blob" }).then(function(content) {
+      zip.generateAsync({ type: "blob" }).then(function (content) {
         saveAs(content, "anki_deck.zip");
       });
     }
