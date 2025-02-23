@@ -35,10 +35,12 @@
         }
         .app-container {
             display: flex;
+            flex-wrap: wrap;
             gap: 30px;
         }
         .form-container, .preview-container {
             flex: 1;
+            min-width: 300px;
             background-color: var(--card-color);
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -83,15 +85,32 @@
             margin-bottom: 15px;
             border-radius: 8px;
             transition: all 0.3s ease;
+            position: relative;
         }
         .flashcard:hover {
             transform: translateY(-3px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
+        .delete-btn {
+            background-color: red;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 14px;
+            position: absolute;
+            top: 5px;
+            right: 5px;
+        }
         .export-buttons {
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
+        }
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
@@ -113,7 +132,6 @@
                 <h2>Your Flashcards</h2>
                 <div class="export-buttons">
                     <button id="exportBtn">Export to CSV</button>
-                    <button id="exportAnkiBtn">Export to Anki</button>
                 </div>
                 <div id="flashcardList"></div>
             </div>
@@ -121,19 +139,19 @@
     </div>
 
     <script>
-        let flashcards = [];
+        let flashcards = JSON.parse(localStorage.getItem("flashcards")) || [];
 
         document.getElementById('flashcardForm').addEventListener('submit', addFlashcard);
         document.getElementById('exportBtn').addEventListener('click', exportToCSV);
-        document.getElementById('exportAnkiBtn').addEventListener('click', exportToAnki);
 
         function addFlashcard(e) {
             e.preventDefault();
-            const front = document.getElementById('front').value;
-            const back = document.getElementById('back').value;
-            
+            const front = document.getElementById('front').value.trim();
+            const back = document.getElementById('back').value.trim();
+
             if (front && back) {
-                flashcards.push({front, back});
+                flashcards.push({ front, back });
+                localStorage.setItem("flashcards", JSON.stringify(flashcards));
                 updateFlashcardList();
                 document.getElementById('flashcardForm').reset();
             } else {
@@ -147,6 +165,7 @@
             flashcards.forEach((card, index) => {
                 list.innerHTML += `
                     <div class="flashcard">
+                        <button class="delete-btn" onclick="deleteFlashcard(${index})">X</button>
                         <h3>Flashcard ${index + 1}</h3>
                         <p><strong>Front:</strong> ${card.front}</p>
                         <p><strong>Back:</strong> ${card.back}</p>
@@ -155,10 +174,17 @@
             });
         }
 
+        function deleteFlashcard(index) {
+            flashcards.splice(index, 1);
+            localStorage.setItem("flashcards", JSON.stringify(flashcards));
+            updateFlashcardList();
+        }
+
         function exportToCSV() {
             let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Front,Back\n";
             flashcards.forEach(card => {
-                csvContent += `${card.front.replace(/,/g, "")},${card.back.replace(/,/g, "")}\n`;
+                csvContent += `"${card.front.replace(/"/g, '""')}","${card.back.replace(/"/g, '""')}"\n`;
             });
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
@@ -169,77 +195,7 @@
             document.body.removeChild(link);
         }
 
-        function exportToAnki() {
-            const zip = new JSZip();
-
-            // Create notes content
-            let notesContent = "";
-            flashcards.forEach((card) => {
-                notesContent += `${card.front}\t${card.back}\n`;
-            });
-
-            // Add notes file to zip
-            zip.file("notes.txt", notesContent);
-
-            // Create a minimal collection.anki2 file
-            const collectionSql = `
-            CREATE TABLE col (
-                id              integer primary key,
-                crt             integer not null,
-                mod             integer not null,
-                scm             integer not null,
-                ver             integer not null,
-                dty             integer not null,
-                usn             integer not null,
-                ls              integer not null,
-                conf            text not null,
-                models          text not null,
-                decks           text not null,
-                dconf           text not null,
-                tags            text not null
-            );
-            CREATE TABLE notes (
-                id              integer primary key,
-                guid            text not null,
-                mid             integer not null,
-                mod             integer not null,
-                usn             integer not null,
-                tags            text not null,
-                flds            text not null,
-                sfld            integer not null,
-                csum            integer not null,
-                flags           integer not null,
-                data            text not null
-            );
-            CREATE TABLE cards (
-                id              integer primary key,
-                nid             integer not null,
-                did             integer not null,
-                ord             integer not null,
-                mod             integer not null,
-                usn             integer not null,
-                type            integer not null,
-                queue           integer not null,
-                due             integer not null,
-                ivl             integer not null,
-                factor          integer not null,
-                reps            integer not null,
-                lapses          integer not null,
-                left            integer not null,
-                odue            integer not null,
-                odid            integer not null,
-                flags           integer not null,
-                data            text not null
-            );
-            `;
-            zip.file("collection.anki2", collectionSql);
-
-            // Generate and download the zip file
-            zip.generateAsync({type:"blob"})
-            .then(function(content) {
-                saveAs(content, "anki_flashcards.apkg");
-            });
-        }
+        updateFlashcardList();
     </script>
 </body>
 </html>
