@@ -1,201 +1,272 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flashcard Creator</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <style>
-        :root {
-            --primary-color: #3498db;
-            --secondary-color: #2ecc71;
-            --background-color: #ecf0f1;
-            --card-color: #ffffff;
-            --text-color: #34495e;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--background-color);
-            color: var(--text-color);
-            line-height: 1.6;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        h1 {
-            color: var(--primary-color);
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 2.5em;
-        }
-        .app-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 30px;
-        }
-        .form-container, .preview-container {
-            flex: 1;
-            min-width: 300px;
-            background-color: var(--card-color);
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            transition: all 0.3s ease;
-        }
-        h2 {
-            color: var(--primary-color);
-            border-bottom: 2px solid var(--primary-color);
-            padding-bottom: 10px;
-            margin-top: 0;
-        }
-        .flashcard-form {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        input[type="text"], textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
-        }
-        button {
-            padding: 10px 15px;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            font-size: 16px;
-        }
-        button:hover {
-            background-color: #2980b9;
-        }
-        .flashcard {
-            background-color: var(--card-color);
-            border: 1px solid #ddd;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-        .flashcard:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        .delete-btn {
-            background-color: red;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            cursor: pointer;
-            font-size: 14px;
-            position: absolute;
-            top: 5px;
-            right: 5px;
-        }
-        .export-buttons {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        @media (max-width: 768px) {
-            .app-container {
-                flex-direction: column;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flashcard Creator with Image Upload</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <style>
+    :root {
+      --primary-color: #3498db;
+      --secondary-color: #2ecc71;
+      --background-color: #ecf0f1;
+      --card-color: #ffffff;
+      --text-color: #34495e;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--background-color);
+      color: var(--text-color);
+      line-height: 1.6;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      color: var(--primary-color);
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2.5em;
+    }
+    .app-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 30px;
+    }
+    .form-container, .preview-container {
+      flex: 1;
+      min-width: 300px;
+      background-color: var(--card-color);
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      transition: all 0.3s ease;
+    }
+    h2 {
+      color: var(--primary-color);
+      border-bottom: 2px solid var(--primary-color);
+      padding-bottom: 10px;
+      margin-top: 0;
+    }
+    .flashcard-form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    input[type="text"], textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    input[type="file"] {
+      font-size: 16px;
+    }
+    button {
+      padding: 10px 15px;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    .flashcard {
+      background-color: var(--card-color);
+      border: 1px solid #ddd;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    .flashcard:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .delete-btn {
+      background-color: red;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-size: 14px;
+      position: absolute;
+      top: 5px;
+      right: 5px;
+    }
+    .export-buttons {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 768px) {
+      .app-container {
+        flex-direction: column;
+      }
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Flashcard Creator</h1>
-        
-        <div class="app-container">
-            <div class="form-container">
-                <h2>Create Flashcards</h2>
-                <form id="flashcardForm" class="flashcard-form">
-                    <input type="text" id="front" placeholder="Front of the card" required>
-                    <textarea id="back" rows="3" placeholder="Back of the card" required></textarea>
-                    <button type="submit">Add Flashcard</button>
-                </form>
-            </div>
-            
-            <div class="preview-container">
-                <h2>Your Flashcards</h2>
-                <div class="export-buttons">
-                    <button id="exportBtn">Export to CSV</button>
-                </div>
-                <div id="flashcardList"></div>
-            </div>
+  <div class="container">
+    <h1>Flashcard Creator</h1>
+    <div class="app-container">
+      <div class="form-container">
+        <h2>Create Flashcards</h2>
+        <form id="flashcardForm" class="flashcard-form">
+          <input type="text" id="front" placeholder="Front of the card" required>
+          <textarea id="back" rows="3" placeholder="Back of the card" required></textarea>
+          <input type="file" id="image" accept="image/*">
+          <button type="submit">Add Flashcard</button>
+        </form>
+      </div>
+      <div class="preview-container">
+        <h2>Your Flashcards</h2>
+        <div class="export-buttons">
+          <button id="exportBtn">Export to Anki</button>
         </div>
+        <div id="flashcardList"></div>
+      </div>
     </div>
+  </div>
 
-    <script>
-        let flashcards = JSON.parse(localStorage.getItem("flashcards")) || [];
+  <script>
+    // Load stored flashcards if available
+    let flashcards = JSON.parse(localStorage.getItem("flashcards")) || [];
 
-        document.getElementById('flashcardForm').addEventListener('submit', addFlashcard);
-        document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+    document.getElementById('flashcardForm').addEventListener('submit', addFlashcard);
+    document.getElementById('exportBtn').addEventListener('click', exportToAnki);
 
-        function addFlashcard(e) {
-            e.preventDefault();
-            const front = document.getElementById('front').value.trim();
-            const back = document.getElementById('back').value.trim();
+    function addFlashcard(e) {
+      e.preventDefault();
+      const frontInput = document.getElementById('front');
+      const backInput = document.getElementById('back');
+      const imageInput = document.getElementById('image');
+      
+      const front = frontInput.value.trim();
+      const back = backInput.value.trim();
 
-            if (front && back) {
-                flashcards.push({ front, back });
-                localStorage.setItem("flashcards", JSON.stringify(flashcards));
-                updateFlashcardList();
-                document.getElementById('flashcardForm').reset();
-            } else {
-                alert('Please fill in both front and back of the card.');
+      if (!front || !back) {
+        alert('Please fill in both front and back of the card.');
+        return;
+      }
+      
+      // If an image is selected, process it asynchronously
+      if (imageInput.files && imageInput.files[0]) {
+        const file = imageInput.files[0];
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          const imageData = event.target.result; // base64 data URL
+          const flashcard = {
+            front: front,
+            back: back,
+            image: {
+              name: generateUniqueFilename(file.name),
+              data: imageData
             }
-        }
-
-        function updateFlashcardList() {
-            const list = document.getElementById('flashcardList');
-            list.innerHTML = '';
-            flashcards.forEach((card, index) => {
-                list.innerHTML += `
-                    <div class="flashcard">
-                        <button class="delete-btn" onclick="deleteFlashcard(${index})">X</button>
-                        <h3>Flashcard ${index + 1}</h3>
-                        <p><strong>Front:</strong> ${card.front}</p>
-                        <p><strong>Back:</strong> ${card.back}</p>
-                    </div>
-                `;
-            });
-        }
-
-        function deleteFlashcard(index) {
-            flashcards.splice(index, 1);
-            localStorage.setItem("flashcards", JSON.stringify(flashcards));
-            updateFlashcardList();
-        }
-
-        function exportToCSV() {
-            let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Front,Back\n";
-            flashcards.forEach(card => {
-                csvContent += `"${card.front.replace(/"/g, '""')}","${card.back.replace(/"/g, '""')}"\n`;
-            });
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "flashcards.csv");
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
+          };
+          flashcards.push(flashcard);
+          localStorage.setItem("flashcards", JSON.stringify(flashcards));
+          updateFlashcardList();
+          document.getElementById('flashcardForm').reset();
+        };
+        reader.readAsDataURL(file);
+      } else {
+        // No image selected; create flashcard normally.
+        const flashcard = {
+          front: front,
+          back: back
+        };
+        flashcards.push(flashcard);
+        localStorage.setItem("flashcards", JSON.stringify(flashcards));
         updateFlashcardList();
-    </script>
+        document.getElementById('flashcardForm').reset();
+      }
+    }
+
+    function generateUniqueFilename(originalName) {
+      // Append a timestamp to the original filename for uniqueness.
+      const timestamp = Date.now();
+      const dotIndex = originalName.lastIndexOf('.');
+      if (dotIndex !== -1) {
+        const name = originalName.substring(0, dotIndex);
+        const ext = originalName.substring(dotIndex);
+        return name + "_" + timestamp + ext;
+      }
+      return originalName + "_" + timestamp;
+    }
+
+    function updateFlashcardList() {
+      const list = document.getElementById('flashcardList');
+      list.innerHTML = '';
+      flashcards.forEach((card, index) => {
+        let imageHTML = '';
+        if (card.image && card.image.data) {
+          imageHTML = `<img src="${card.image.data}" alt="Image" style="max-width:100px; display:block; margin-top:10px;">`;
+        }
+        list.innerHTML += `
+          <div class="flashcard">
+            <button class="delete-btn" onclick="deleteFlashcard(${index})">X</button>
+            <h3>Flashcard ${index + 1}</h3>
+            <p><strong>Front:</strong> ${card.front}</p>
+            ${imageHTML}
+            <p><strong>Back:</strong> ${card.back}</p>
+          </div>
+        `;
+      });
+    }
+
+    function deleteFlashcard(index) {
+      flashcards.splice(index, 1);
+      localStorage.setItem("flashcards", JSON.stringify(flashcards));
+      updateFlashcardList();
+    }
+
+    async function exportToAnki() {
+      const zip = new JSZip();
+      let csvContent = "Front,Back\n";
+      // Object to track added image files (avoid duplicate entries)
+      const addedImages = {};
+
+      flashcards.forEach(card => {
+        let frontContent = card.front;
+        // If an image exists, append an HTML image tag referencing the file name.
+        if (card.image && card.image.name) {
+          frontContent += `<br><img src="${card.image.name}">`;
+          // Add the image file to the zip if not already added.
+          if (!addedImages[card.image.name]) {
+            const base64Index = card.image.data.indexOf(',') + 1;
+            const base64Data = card.image.data.substring(base64Index);
+            zip.file(card.image.name, base64Data, { base64: true });
+            addedImages[card.image.name] = true;
+          }
+        }
+        // Escape double quotes for CSV formatting.
+        frontContent = frontContent.replace(/"/g, '""');
+        const backContent = card.back.replace(/"/g, '""');
+        csvContent += `"${frontContent}","${backContent}"\n`;
+      });
+
+      // Add the CSV file to the zip.
+      zip.file("flashcards.csv", csvContent);
+
+      // Generate the zip file and trigger a download.
+      zip.generateAsync({ type: "blob" }).then(function(content) {
+        saveAs(content, "anki_deck.zip");
+      });
+    }
+
+    updateFlashcardList();
+  </script>
 </body>
 </html>
